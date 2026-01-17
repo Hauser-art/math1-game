@@ -3,66 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全能數學王 V4 - 終極難度版</title>
+    <title>全能數學王 V4.1 - 佈局優化版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap');
-        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f8fafc; touch-action: manipulation; }
-        .game-card { background: white; border-radius: 24px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); width: 100%; max-width: 480px; }
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f0f4f8; touch-action: manipulation; }
+        .game-card { background: white; border-radius: 24px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); width: 100%; max-width: 480px; min-height: 600px; display: flex; flex-direction: column; }
         .timer-bar { transition: width 1s linear; }
         .hidden { display: none !important; }
         input { -webkit-appearance: none; border-radius: 12px; outline: none; border: 3px solid #e2e8f0; text-align: center; transition: all 0.2s; font-weight: bold; }
-        input:focus { border-color: #3b82f6; background-color: #eff6ff; transform: scale(1.02); }
-        .fraction-line { width: 100%; height: 4px; background-color: #333; margin: 6px 0; border-radius: 2px; }
-        .btn-topic { transition: transform 0.1s; }
-        .btn-topic:active { transform: scale(0.95); }
+        input:focus { border-color: #3b82f6; background-color: #eff6ff; }
+        .fraction-line { width: 100%; height: 4px; background-color: #333; margin: 8px 0; border-radius: 2px; }
+        
+        /* 核心修正：反饋層排版 */
+        #feedback { 
+            position: absolute; 
+            inset: 0; 
+            background-color: white; /* 確保完全遮蓋下層 */
+            z-index: 100; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            padding: 2rem;
+            text-align: center;
+        }
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
 
     <div id="app" class="w-full flex justify-center">
         
-        <div id="topic-screen" class="game-card p-10 text-center">
-            <div class="mb-4 text-7xl">🧬</div>
+        <div id="topic-screen" class="game-card p-10 text-center justify-center">
+            <div class="mb-4 text-7xl">🎓</div>
             <h1 class="text-3xl font-bold text-slate-800 mb-2">全能數學王</h1>
-            <p class="text-slate-500 mb-8">挑戰你的腦力極限</p>
+            <p class="text-slate-500 mb-8 text-lg">選擇一個主題開始挑戰</p>
             <div class="space-y-4">
-                <button onclick="selectTopic('math')" class="btn-topic w-full py-6 rounded-2xl text-xl font-bold bg-blue-500 text-white shadow-lg">➕ 基礎四則運算</button>
-                <button onclick="selectTopic('length')" class="btn-topic w-full py-6 rounded-2xl text-xl font-bold bg-orange-500 text-white shadow-lg">📏 長度跨級換算</button>
-                <button onclick="selectTopic('fraction')" class="btn-topic w-full py-6 rounded-2xl text-xl font-bold bg-emerald-600 text-white shadow-lg">🍰 分數進階練習</button>
+                <button onclick="selectTopic('math')" class="w-full py-5 rounded-2xl text-xl font-bold bg-blue-500 text-white shadow-lg active:scale-95 transition">➕ 基礎四則運算</button>
+                <button onclick="selectTopic('length')" class="w-full py-5 rounded-2xl text-xl font-bold bg-orange-500 text-white shadow-lg active:scale-95 transition">📏 長度進位換算</button>
+                <button onclick="selectTopic('fraction')" class="w-full py-5 rounded-2xl text-xl font-bold bg-emerald-600 text-white shadow-lg active:scale-95 transition">🍰 分數基礎練習</button>
             </div>
         </div>
 
-        <div id="grade-screen" class="game-card p-10 text-center hidden">
-            <button onclick="backToTopic()" class="text-slate-400 mb-6 block font-bold hover:text-slate-600">← 返回單元選擇</button>
-            <h2 id="grade-title" class="text-2xl font-bold mb-8 text-slate-700">選擇挑戰等級</h2>
+        <div id="grade-screen" class="game-card p-10 text-center hidden justify-center">
+            <button onclick="backToTopic()" class="text-slate-400 mb-6 block font-bold hover:text-slate-600">← 返回選單</button>
+            <h2 id="grade-title" class="text-2xl font-bold mb-8 text-slate-700">選擇等級</h2>
             <div class="space-y-4">
-                <button onclick="startGame('2')" class="w-full py-5 rounded-2xl text-xl font-bold bg-green-500 text-white shadow-md">二年級 (15秒)</button>
-                <button onclick="startGame('3')" class="w-full py-5 rounded-2xl text-xl font-bold bg-sky-500 text-white shadow-md">三年級 (30秒)</button>
-                <button onclick="startGame('4')" class="w-full py-5 rounded-2xl text-xl font-bold bg-purple-700 text-white shadow-md">四年級 (45秒 - 困難)</button>
+                <button onclick="startGame('2')" class="w-full py-5 rounded-2xl text-xl font-bold bg-green-500 text-white shadow-md active:scale-95">二年級 (15秒)</button>
+                <button onclick="startGame('3')" class="w-full py-5 rounded-2xl text-xl font-bold bg-sky-500 text-white shadow-md active:scale-95">三年級 (30秒)</button>
+                <button onclick="startGame('4')" class="w-full py-5 rounded-2xl text-xl font-bold bg-indigo-600 text-white shadow-md active:scale-95">四年級 (45秒)</button>
             </div>
         </div>
 
-        <div id="game-screen" class="game-card p-6 hidden relative overflow-hidden">
+        <div id="game-screen" class="game-card hidden relative overflow-hidden">
             <div class="absolute top-0 left-0 w-full h-2 bg-slate-100">
                 <div id="timer-bar" class="h-full bg-red-500 timer-bar" style="width: 100%"></div>
             </div>
 
-            <div class="flex justify-between items-center mb-6 mt-4">
-                <span id="q-label" class="bg-slate-100 text-slate-600 px-3 py-1 rounded-full text-xs font-bold">第 1 / 10 題</span>
+            <div class="flex justify-between items-center px-6 pt-8 pb-4">
+                <span id="q-label" class="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-sm font-bold">第 1 / 10 題</span>
                 <span id="timer-text" class="font-bold text-red-600 text-xl">--s</span>
                 <span class="text-slate-600 font-bold">得分: <span id="score-display" class="text-green-600">0</span></span>
             </div>
 
-            <div class="flex flex-col items-center justify-center min-h-[340px] mb-6 px-4">
-                <div id="visual-hint" class="mb-4 text-center"></div>
-                <div id="question-text" class="text-3xl font-bold text-slate-800 mb-10 text-center leading-relaxed"></div>
+            <div class="flex-grow flex flex-col items-center justify-center px-6 text-center">
+                <div id="visual-hint" class="h-12 mb-2"></div>
+                <div id="question-text" class="text-3xl font-bold text-slate-800 mb-12 min-h-[80px] flex items-center"></div>
                 
-                <div id="ui-standard" class="hidden flex flex-col items-center">
-                    <input type="number" id="ans-main" inputmode="numeric" class="w-56 text-5xl p-4" placeholder="?">
+                <div id="ui-standard" class="hidden w-full flex flex-col items-center">
+                    <input type="number" id="ans-main" inputmode="numeric" class="w-48 text-5xl p-4 shadow-sm" placeholder="?">
                     <div id="remainder-box" class="hidden mt-6 flex items-center space-x-3">
                         <span class="text-2xl font-bold text-blue-500">餘數</span>
-                        <input type="number" id="ans-rem" inputmode="numeric" class="w-28 text-center text-4xl p-2" placeholder="?">
+                        <input type="number" id="ans-rem" inputmode="numeric" class="w-28 text-4xl p-2" placeholder="?">
                     </div>
                 </div>
 
@@ -73,24 +85,26 @@
                 </div>
             </div>
 
-            <button id="submit-btn" onclick="checkAnswer()" class="w-full py-5 rounded-2xl text-2xl font-bold bg-blue-600 text-white shadow-xl active:bg-blue-700">送 出 答 案</button>
+            <div class="p-6">
+                <button id="submit-btn" onclick="checkAnswer()" class="w-full py-5 rounded-2xl text-2xl font-bold bg-blue-600 text-white shadow-xl active:scale-95 transition">送出答案</button>
+            </div>
 
-            <div id="feedback" class="hidden absolute inset-0 bg-white/fb flex flex-col items-center justify-center z-50">
+            <div id="feedback" class="hidden">
                 <div id="feedback-icon" class="text-9xl mb-6"></div>
-                <h2 id="feedback-text" class="text-4xl font-bold mb-4"></h2>
-                <p id="correct-answer-text" class="text-2xl text-slate-500 mb-10"></p>
-                <button onclick="nextQuestion()" class="bg-slate-800 text-white px-20 py-4 rounded-2xl text-2xl font-bold">下一題</button>
+                <h2 id="feedback-text" class="text-4xl font-bold text-slate-800 mb-2"></h2>
+                <p id="correct-answer-text" class="text-2xl text-slate-500 mb-12"></p>
+                <button onclick="nextQuestion()" class="w-full max-w-[280px] py-5 rounded-2xl text-2xl font-bold bg-slate-800 text-white shadow-lg active:scale-95 transition">下一題</button>
             </div>
         </div>
 
-        <div id="result-screen" class="game-card p-10 text-center hidden">
-            <div id="medal-icon" class="text-8xl mb-4">🎖️</div>
+        <div id="result-screen" class="game-card p-10 text-center hidden justify-center">
+            <div id="medal-icon" class="text-8xl mb-4">🏆</div>
             <h2 id="rank-text" class="text-3xl font-bold text-slate-800 mb-2">評價中...</h2>
-            <div class="text-6xl font-bold text-blue-600 mb-8"><span id="final-score">0</span> 分</div>
+            <div class="text-6xl font-bold text-blue-600 mb-10"><span id="final-score">0</span> 分</div>
             
-            <div class="text-left mb-8 bg-slate-50 p-4 rounded-xl">
-                <h3 class="font-bold text-red-500 mb-3 border-b border-red-200 pb-2">錯誤題目紀錄：</h3>
-                <div class="max-h-48 overflow-y-auto pr-2 text-base text-slate-600" id="wrong-list"></div>
+            <div class="text-left mb-8 bg-slate-50 p-6 rounded-2xl">
+                <h3 class="font-bold text-red-500 mb-3 border-b border-red-100 pb-2">錯誤題目紀錄：</h3>
+                <div class="max-h-40 overflow-y-auto pr-2 text-slate-600" id="wrong-list"></div>
             </div>
             <button onclick="window.location.reload()" class="w-full py-5 rounded-2xl text-2xl font-bold bg-blue-600 text-white shadow-lg">返回主選單</button>
         </div>
@@ -100,16 +114,14 @@
         let currentTopic = '', audioCtx = null, timerId = null, timeLeft = 15, timeLimitPerQ = 15;
         let score = 0, currentIdx = 0, questions = [], wrongAnswers = [];
 
-        // 自動跳格邏輯
+        // 自動跳格與鍵盤優化
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
                 const active = document.activeElement;
-                if (active.id === 'ans-num') document.getElementById('ans-den').focus();
-                else if (active.id === 'ans-main' && !document.getElementById('remainder-box').classList.contains('hidden')) {
-                    document.getElementById('ans-rem').focus();
-                } else {
-                    checkAnswer();
-                }
+                if (active.id === 'ans-num') { e.preventDefault(); document.getElementById('ans-den').focus(); }
+                else if (active.id === 'ans-main' && !document.getElementById('remainder-box').classList.contains('hidden')) { e.preventDefault(); document.getElementById('ans-rem').focus(); }
+                else if (document.getElementById('feedback').classList.contains('hidden')) { checkAnswer(); }
+                else { nextQuestion(); }
             }
         });
 
@@ -174,7 +186,6 @@
                 q = m + " 公尺 " + cm + " 公分 = (?) 公分";
                 ans = m * 100 + cm;
             } else {
-                // 四年級：終極跨度挑戰
                 let r = Math.random();
                 if (r < 0.3) {
                     let km = rand(1, 5);
@@ -204,7 +215,6 @@
                 q = n1+"/"+den + " - " + n2+"/"+den + " = ?";
                 ansNum = n1-n2; ansDen = den;
             } else {
-                // 四年級：借位挑戰
                 den = rand(5, 15); n1 = rand(1, den-1);
                 q = "<span class='text-indigo-600 font-bold'>【整數借位】</span><br> 1 - " + n1+"/"+den + " = ?";
                 ansNum = den - n1; ansDen = den;
@@ -221,7 +231,7 @@
             document.getElementById('question-text').innerHTML = data.q;
             
             const vHint = document.getElementById('visual-hint');
-            vHint.innerHTML = (data.type==='length') ? "<span class='text-xs font-bold text-orange-500'>1km=1000m / 1m=100cm / 1cm=10mm</span>" : "";
+            vHint.innerHTML = (data.type==='length') ? "<span class='text-xs font-bold text-orange-500'>提示: 1km=1000m / 1m=100cm / 1cm=10mm</span>" : "";
 
             document.getElementById('ui-standard').classList.add('hidden');
             document.getElementById('ui-fraction').classList.add('hidden');
@@ -311,7 +321,7 @@
             const list = document.getElementById('wrong-list');
             list.innerHTML = wrongAnswers.length ? "" : "<p class='text-green-600 font-bold'>全部正確！你真是個天才！</p>";
             wrongAnswers.forEach(w => {
-                list.innerHTML += `<div class='border-b py-2'>題：${w.q}<br><span class='text-red-400'>答：${w.u}</span> | <span class='text-blue-500 font-bold'>正確：${w.a}</span></div>`;
+                list.innerHTML += `<div class='border-b py-2 mb-2'>題目：${w.q}<br><span class='text-red-400 font-bold'>答：${w.u}</span> | <span class='text-blue-500 font-bold'>正確：${w.a}</span></div>`;
             });
         }
 
