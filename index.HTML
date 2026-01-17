@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>國小數學大挑戰</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap');
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f8fafc; touch-action: manipulation; }
+        .game-card { background: white; border-radius: 24px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); width: 100%; max-width: 450px; }
+        .timer-bar { transition: width 1s linear; }
+        .hidden { display: none !important; }
+        input { -webkit-appearance: none; border-radius: 12px; outline: none; border: 2px solid #e2e8f0; }
+        input:focus { border-color: #3b82f6; background-color: #eff6ff; }
+        .grade-btn { transition: all 0.2s; }
+        .grade-btn:active { transform: scale(0.95); }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <div id="app" class="w-full flex justify-center">
+        
+        <div id="start-screen" class="game-card p-10 text-center">
+            <h1 class="text-3xl font-bold text-blue-600 mb-2">國小數學挑戰</h1>
+            <p class="text-gray-500 mb-8">請選擇你的年級</p>
+            <div class="space-y-4">
+                <button onclick="startGame('2')" class="grade-btn w-full py-5 rounded-2xl text-xl font-bold bg-green-500 text-white shadow-lg">二年級 (容易：加減乘)</button>
+                <button onclick="startGame('3')" class="grade-btn w-full py-5 rounded-2xl text-xl font-bold bg-blue-500 text-white shadow-lg">三年級 (普通：加減乘除)</button>
+                <button onclick="startGame('4')" class="grade-btn w-full py-5 rounded-2xl text-xl font-bold bg-purple-600 text-white shadow-lg">四年級 (困難：進階運算)</button>
+            </div>
+        </div>
+
+        <div id="game-screen" class="game-card p-6 hidden relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-2 bg-gray-100">
+                <div id="timer-bar" class="h-full bg-red-500 timer-bar" style="width: 100%"></div>
+            </div>
+
+            <div class="flex justify-between items-center mb-6 mt-4">
+                <span id="q-label" class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-bold">第 1 / 10 題</span>
+                <span id="timer-text" class="font-bold text-red-600 text-xl">15s</span>
+                <span class="text-gray-600 font-bold">得分: <span id="score-display" class="text-green-600">0</span></span>
+            </div>
+
+            <div class="flex flex-col items-center justify-center min-h-[250px] mb-6">
+                <div id="math-text" class="text-6xl font-bold text-gray-800 mb-10 text-center"></div>
+                <div class="flex flex-col items-center w-full">
+                    <input type="number" id="math-input" inputmode="numeric" class="w-full max-w-[200px] text-center text-5xl p-4" placeholder="?">
+                    <div id="remainder-box" class="hidden mt-4 flex items-center space-x-2">
+                        <span class="text-2xl font-bold text-gray-400">餘數...</span>
+                        <input type="number" id="math-remainder" inputmode="numeric" class="w-24 text-center text-3xl p-2" placeholder="餘">
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="checkAnswer()" class="w-full py-4 rounded-2xl text-xl font-bold bg-blue-600 text-white shadow-lg active:bg-blue-700">送出答案</button>
+
+            <div id="feedback" class="hidden absolute inset-0 bg-white/95 flex flex-col items-center justify-center z-50">
+                <div id="feedback-icon" class="text-8xl mb-4"></div>
+                <h2 id="feedback-text" class="text-3xl font-bold mb-2"></h2>
+                <p id="correct-answer-text" class="text-xl text-gray-600 mb-8"></p>
+                <button onclick="nextQuestion()" class="bg-blue-500 text-white px-16 py-4 rounded-xl text-xl font-bold">下一題</button>
+            </div>
+        </div>
+
+        <div id="result-screen" class="game-card p-8 text-center hidden">
+            <h2 class="text-2xl font-bold mb-2">測驗完成！</h2>
+            <div class="text-5xl font-bold text-blue-600 mb-6"><span id="final-score">0</span> 分</div>
+            
+            <div class="text-left mb-6">
+                <h3 class="font-bold text-red-500 mb-2 border-b pb-1">錯題複習：</h3>
+                <div class="max-h-48 overflow-y-auto pr-2 text-sm text-gray-600" id="wrong-list"></div>
+            </div>
+
+            <button onclick="window.location.reload()" class="w-full py-4 rounded-2xl text-xl font-bold bg-gray-800 text-white shadow-lg">回主選單</button>
+        </div>
+    </div>
+
+    <script>
+        let audioCtx = null, timerId = null, timeLeft = 15, score = 0, currentIdx = 0, questions = [], wrongAnswers = [];
+
+        function playTone(freq, type, dur) {
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type; osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + dur);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(); osc.stop(audioCtx.currentTime + dur);
+            } catch(e) {}
+        }
+
+        function startGame(grade) {
+            score = 0; currentIdx = 0; wrongAnswers = [];
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            
+            // 題庫生成邏輯
+            questions = [];
+            for(let i=0; i<10; i++) {
+                questions.push(generateQuestion(grade));
+            }
+            loadQuestion();
+        }
+
+        function generateQuestion(grade) {
+            const types = (grade === '2') ? ['+', '-', '*'] : ['+', '-', '*', '/'];
+            const type = types[Math.floor(Math.random() * types.length)];
+            let a, b, q, ans, r = 0;
+
+            if (grade === '2') {
+                if (type === '+') { a = rand(10, 99); b = rand(10, 99); ans = a + b; q = `${a} + ${b}`; }
+                else if (type === '-') { a = rand(50, 99); b = rand(10, 49); ans = a - b; q = `${a} - ${b}`; }
+                else { a = rand(2, 5); b = rand(2, 9); ans = a * b; q = `${a} × ${b}`; }
+            } else if (grade === '3') {
+                if (type === '+') { a = rand(100, 999); b = rand(100, 999); ans = a + b; q = `${a} + ${b}`; }
+                else if (type === '-') { a = rand(500, 999); b = rand(100, 499); ans = a - b; q = `${a} - ${b}`; }
+                else if (type === '*') { a = rand(2, 9); b = rand(11, 99); ans = a * b; q = `${a} × ${b}`; }
+                else { b = rand(2, 9); ans = rand(2, 20); a = ans * b; q = `${a} ÷ ${b}`; } // 除盡
+            } else { // 四年級
+                if (type === '+') { a = rand(1000, 9999); b = rand(1000, 9999); ans = a + b; q = `${a} + ${b}`; }
+                else if (type === '-') { a = rand(5000, 9999); b = rand(1000, 4999); ans = a - b; q = `${a} - ${b}`; }
+                else if (type === '*') { a = rand(11, 99); b = rand(11, 50); ans = a * b; q = `${a} × ${b}`; }
+                else { // 會有餘數
+                    b = rand(3, 9); a = rand(20, 99);
+                    ans = Math.floor(a / b);
+                    r = a % b;
+                    q = `${a} ÷ ${b}`;
+                }
+            }
+            return { q, ans, r, isDivision: (type === '/' && r > 0) };
+        }
+
+        function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+        function loadQuestion() {
+            const data = questions[currentIdx];
+            timeLeft = 15;
+            document.getElementById('feedback').classList.add('hidden');
+            document.getElementById('q-label').innerText = `第 ${currentIdx + 1} / 10 題`;
+            document.getElementById('score-display').innerText = score;
+            document.getElementById('math-text').innerText = data.q;
+            document.getElementById('math-input').value = "";
+            document.getElementById('math-remainder').value = "";
+            
+            if (data.isDivision) {
+                document.getElementById('remainder-box').classList.remove('hidden');
+            } else {
+                document.getElementById('remainder-box').classList.add('hidden');
+            }
+            
+            setTimeout(() => document.getElementById('math-input').focus(), 150);
+            updateTimerUI();
+            startTimer();
+        }
+
+        function startTimer() {
+            clearInterval(timerId);
+            timerId = setInterval(() => {
+                timeLeft--;
+                updateTimerUI();
+                if(timeLeft <= 0) { clearInterval(timerId); checkAnswer(true); }
+            }, 1000);
+        }
+
+        function updateTimerUI() {
+            document.getElementById('timer-text').innerText = timeLeft + "s";
+            document.getElementById('timer-bar').style.width = (timeLeft / 15 * 100) + "%";
+        }
+
+        function checkAnswer(isTimeout = false) {
+            clearInterval(timerId);
+            const data = questions[currentIdx];
+            let userAns = parseInt(document.getElementById('math-input').value);
+            let userRem = parseInt(document.getElementById('math-remainder').value) || 0;
+            let isCorrect = false;
+
+            if (!isTimeout) {
+                if (data.isDivision) {
+                    isCorrect = (userAns === data.ans && userRem === data.r);
+                } else {
+                    isCorrect = (userAns === data.ans);
+                }
+            }
+
+            document.getElementById('feedback').classList.remove('hidden');
+            if(isCorrect) {
+                score += 10;
+                document.getElementById('score-display').innerText = score;
+                playTone(880, 'sine', 0.2);
+                document.getElementById('feedback-icon').innerText = "🎉";
+                document.getElementById('feedback-text').innerText = "答對了！";
+                document.getElementById('correct-answer-text').innerText = "";
+            } else {
+                playTone(200, 'square', 0.3);
+                let correctStr = data.isDivision ? `${data.ans} 餘 ${data.r}` : data.ans;
+                let userStr = isTimeout ? "超時" : (data.isDivision ? `${userAns||0} 餘 ${userRem}` : userAns||0);
+                wrongAnswers.push({ q: data.q, a: correctStr, u: userStr });
+                document.getElementById('feedback-icon').innerText = "😅";
+                document.getElementById('feedback-text').innerText = isTimeout ? "時間到！" : "答錯了";
+                document.getElementById('correct-answer-text').innerText = `正解：${correctStr}`;
+            }
+        }
+
+        function nextQuestion() {
+            currentIdx++;
+            if(currentIdx < 10) loadQuestion();
+            else showResult();
+        }
+
+        function showResult() {
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('result-screen').classList.remove('hidden');
+            document.getElementById('final-score').innerText = score;
+            const list = document.getElementById('wrong-list');
+            list.innerHTML = wrongAnswers.length ? "" : "<p class='text-green-600 font-bold text-center'>🌟 全對！你是數學小天才！</p>";
+            wrongAnswers.forEach(w => {
+                list.innerHTML += `<div class='border-b py-2'>題目：<b>${w.q}</b><br><span class='text-red-500'>你答：${w.u}</span> | <span class='text-blue-600'>正解：${w.a}</span></div>`;
+            });
+        }
+    </script>
+</body>
+</html>
