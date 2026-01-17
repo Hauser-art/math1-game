@@ -13,21 +13,18 @@
         .hidden { display: none !important; }
         input { -webkit-appearance: none; border-radius: 12px; outline: none; border: 2px solid #e2e8f0; }
         input:focus { border-color: #3b82f6; background-color: #eff6ff; }
-        .grade-btn { transition: all 0.2s; }
-        .grade-btn:active { transform: scale(0.95); }
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
 
     <div id="app" class="w-full flex justify-center">
-        
         <div id="start-screen" class="game-card p-10 text-center">
             <h1 class="text-3xl font-bold text-blue-600 mb-2">國小數學挑戰</h1>
-            <p class="text-gray-500 mb-8">請選擇你的年級</p>
+            <p class="text-gray-500 mb-8">選擇年級開始計時挑戰</p>
             <div class="space-y-4">
-                <button onclick="startGame('2')" class="grade-btn w-full py-5 rounded-2xl text-xl font-bold bg-green-500 text-white shadow-lg">二年級 (容易：加減乘)</button>
-                <button onclick="startGame('3')" class="grade-btn w-full py-5 rounded-2xl text-xl font-bold bg-blue-500 text-white shadow-lg">三年級 (普通：加減乘除)</button>
-                <button onclick="startGame('4')" class="grade-btn w-full py-5 rounded-2xl text-xl font-bold bg-purple-600 text-white shadow-lg">四年級 (困難：進階運算)</button>
+                <button onclick="startGame('2')" class="w-full py-5 rounded-2xl text-xl font-bold bg-green-500 text-white shadow-lg active:scale-95">二年級 (15秒)</button>
+                <button onclick="startGame('3')" class="w-full py-5 rounded-2xl text-xl font-bold bg-blue-500 text-white shadow-lg active:scale-95">三年級 (30秒)</button>
+                <button onclick="startGame('4')" class="w-full py-5 rounded-2xl text-xl font-bold bg-purple-600 text-white shadow-lg active:scale-95">四年級 (45秒)</button>
             </div>
         </div>
 
@@ -53,7 +50,7 @@
                 </div>
             </div>
 
-            <button onclick="checkAnswer()" class="w-full py-4 rounded-2xl text-xl font-bold bg-blue-600 text-white shadow-lg active:bg-blue-700">送出答案</button>
+            <button onclick="checkAnswer()" class="w-full py-4 rounded-2xl text-xl font-bold bg-blue-600 text-white shadow-lg">送出答案</button>
 
             <div id="feedback" class="hidden absolute inset-0 bg-white/95 flex flex-col items-center justify-center z-50">
                 <div id="feedback-icon" class="text-8xl mb-4"></div>
@@ -66,18 +63,17 @@
         <div id="result-screen" class="game-card p-8 text-center hidden">
             <h2 class="text-2xl font-bold mb-2">測驗完成！</h2>
             <div class="text-5xl font-bold text-blue-600 mb-6"><span id="final-score">0</span> 分</div>
-            
             <div class="text-left mb-6">
                 <h3 class="font-bold text-red-500 mb-2 border-b pb-1">錯題複習：</h3>
                 <div class="max-h-48 overflow-y-auto pr-2 text-sm text-gray-600" id="wrong-list"></div>
             </div>
-
-            <button onclick="window.location.reload()" class="w-full py-4 rounded-2xl text-xl font-bold bg-gray-800 text-white shadow-lg">回主選單</button>
+            <button onclick="window.location.reload()" class="w-full py-4 rounded-2xl text-xl font-bold bg-gray-800 text-white">回主選單</button>
         </div>
     </div>
 
     <script>
-        let audioCtx = null, timerId = null, timeLeft = 15, score = 0, currentIdx = 0, questions = [], wrongAnswers = [];
+        // 新增時間限制變數
+        let audioCtx = null, timerId = null, timeLeft = 15, timeLimit = 15, score = 0, currentIdx = 0, questions = [], wrongAnswers = [];
 
         function playTone(freq, type, dur) {
             try {
@@ -94,15 +90,17 @@
         }
 
         function startGame(grade) {
+            // 設定各年級專屬時間
+            if (grade === '2') timeLimit = 15;
+            else if (grade === '3') timeLimit = 30;
+            else if (grade === '4') timeLimit = 45;
+
             score = 0; currentIdx = 0; wrongAnswers = [];
             document.getElementById('start-screen').classList.add('hidden');
             document.getElementById('game-screen').classList.remove('hidden');
             
-            // 題庫生成邏輯
             questions = [];
-            for(let i=0; i<10; i++) {
-                questions.push(generateQuestion(grade));
-            }
+            for(let i=0; i<10; i++) questions.push(generateQuestion(grade));
             loadQuestion();
         }
 
@@ -119,17 +117,12 @@
                 if (type === '+') { a = rand(100, 999); b = rand(100, 999); ans = a + b; q = `${a} + ${b}`; }
                 else if (type === '-') { a = rand(500, 999); b = rand(100, 499); ans = a - b; q = `${a} - ${b}`; }
                 else if (type === '*') { a = rand(2, 9); b = rand(11, 99); ans = a * b; q = `${a} × ${b}`; }
-                else { b = rand(2, 9); ans = rand(2, 20); a = ans * b; q = `${a} ÷ ${b}`; } // 除盡
-            } else { // 四年級
+                else { b = rand(2, 9); ans = rand(2, 20); a = ans * b; q = `${a} ÷ ${b}`; }
+            } else {
                 if (type === '+') { a = rand(1000, 9999); b = rand(1000, 9999); ans = a + b; q = `${a} + ${b}`; }
                 else if (type === '-') { a = rand(5000, 9999); b = rand(1000, 4999); ans = a - b; q = `${a} - ${b}`; }
                 else if (type === '*') { a = rand(11, 99); b = rand(11, 50); ans = a * b; q = `${a} × ${b}`; }
-                else { // 會有餘數
-                    b = rand(3, 9); a = rand(20, 99);
-                    ans = Math.floor(a / b);
-                    r = a % b;
-                    q = `${a} ÷ ${b}`;
-                }
+                else { b = rand(3, 9); a = rand(20, 99); ans = Math.floor(a / b); r = a % b; q = `${a} ÷ ${b}`; }
             }
             return { q, ans, r, isDivision: (type === '/' && r > 0) };
         }
@@ -138,7 +131,7 @@
 
         function loadQuestion() {
             const data = questions[currentIdx];
-            timeLeft = 15;
+            timeLeft = timeLimit; // 使用動態設定的時間
             document.getElementById('feedback').classList.add('hidden');
             document.getElementById('q-label').innerText = `第 ${currentIdx + 1} / 10 題`;
             document.getElementById('score-display').innerText = score;
@@ -146,11 +139,8 @@
             document.getElementById('math-input').value = "";
             document.getElementById('math-remainder').value = "";
             
-            if (data.isDivision) {
-                document.getElementById('remainder-box').classList.remove('hidden');
-            } else {
-                document.getElementById('remainder-box').classList.add('hidden');
-            }
+            if (data.isDivision) document.getElementById('remainder-box').classList.remove('hidden');
+            else document.getElementById('remainder-box').classList.add('hidden');
             
             setTimeout(() => document.getElementById('math-input').focus(), 150);
             updateTimerUI();
@@ -168,7 +158,8 @@
 
         function updateTimerUI() {
             document.getElementById('timer-text').innerText = timeLeft + "s";
-            document.getElementById('timer-bar').style.width = (timeLeft / 15 * 100) + "%";
+            // 進度條長度計算也會根據 timeLimit 自動縮減
+            document.getElementById('timer-bar').style.width = (timeLeft / timeLimit * 100) + "%";
         }
 
         function checkAnswer(isTimeout = false) {
@@ -179,11 +170,8 @@
             let isCorrect = false;
 
             if (!isTimeout) {
-                if (data.isDivision) {
-                    isCorrect = (userAns === data.ans && userRem === data.r);
-                } else {
-                    isCorrect = (userAns === data.ans);
-                }
+                if (data.isDivision) isCorrect = (userAns === data.ans && userRem === data.r);
+                else isCorrect = (userAns === data.ans);
             }
 
             document.getElementById('feedback').classList.remove('hidden');
